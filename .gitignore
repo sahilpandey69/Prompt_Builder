@@ -1,0 +1,8 @@
+.env
+*.ipynb
+compose.yaml
+launch.json
+tasks.json
+*._pycache_*
+venv/
+__pycache__/

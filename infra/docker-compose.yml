@@ -1,0 +1,37 @@
+# Optional: run backend + Redis + MongoDB + Postgres for full stack.
+# For MVP, backend can run locally with in-memory session store.
+version: "3.8"
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    depends_on:
+      - redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  mongodb:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: prompt
+      POSTGRES_PASSWORD: prompt
+      POSTGRES_DB: prompt_builder
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+volumes:
+  mongo_data: {}
+  pg_data: {}
