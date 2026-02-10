@@ -21,8 +21,18 @@ from backend.models.api import (
     TemplateItem,
     FromTemplateRequest,
 )
-from backend.services.sessions import get_session, set_session, merge_session, list_session_ids
-from backend.services import list_templates_svc, get_template, save_feedback, get_feedback_summary
+from backend.services.sessions import (
+    get_session,
+    set_session,
+    merge_session,
+    list_session_ids,
+)
+from backend.services import (
+    list_templates_svc,
+    get_template,
+    save_feedback,
+    get_feedback_summary,
+)
 
 app = FastAPI(title="Prompt Builder API", version="0.1.0")
 
@@ -59,12 +69,17 @@ def _get_content(req: CreateRequest) -> tuple[str, str]:
     inp = req.input
     t = inp.get("type", "text")
     if t == "text":
-        return (inp.get("content") or "").strip(), "text"
+        content = inp.get("content")
+        if content is None:
+            return "", "text"
+        return str(content).strip(), "text"
     if t == "combined":
         # Combined input: may contain file, paste, and form parts
         content = inp.get("content") or {}
         file_part = content.get("file")
-        paste_text = (content.get("paste") or "").strip() if isinstance(content, dict) else ""
+        paste_text = (
+            (content.get("paste") or "").strip() if isinstance(content, dict) else ""
+        )
         form_part = content.get("form") or {}
         chunks: list[str] = []
 
@@ -115,7 +130,9 @@ def _get_content(req: CreateRequest) -> tuple[str, str]:
             b64 = content.split(";base64,", 1)[1] if ";base64," in content else content
             try:
                 raw_bytes = base64.b64decode(b64, validate=True)
-                return extract_file_content(raw_bytes, filename), metadata.get("file_type") or (filename.split(".")[-1] if "." in filename else "file")
+                return extract_file_content(raw_bytes, filename), metadata.get(
+                    "file_type"
+                ) or (filename.split(".")[-1] if "." in filename else "file")
             except Exception:
                 return content[:10000], metadata.get("file_type") or "text"
         return "", "file"
@@ -235,7 +252,9 @@ async def prompt_feedback(
     body: FeedbackRequest,
     _: None = Depends(auth_dependency),
 ):
-    save_feedback(session_id, body.deployed, body.rating, body.issues, body.manual_edits)
+    save_feedback(
+        session_id, body.deployed, body.rating, body.issues, body.manual_edits
+    )
     return {"session_id": session_id, "received": True}
 
 
@@ -281,7 +300,9 @@ async def prompt_batch(
             "status": "parsing",
         }
         set_session(session_id, initial)
-        result = graph.invoke(initial, config={"configurable": {"thread_id": session_id}})
+        result = graph.invoke(
+            initial, config={"configurable": {"thread_id": session_id}}
+        )
         state = result if isinstance(result, dict) else {}
         previous = get_session(session_id) or {}
         set_session(session_id, {**previous, **state})
@@ -305,6 +326,7 @@ async def save_as_template(
     # If MongoDB connected, insert; else return template payload for frontend to display
     try:
         from pymongo import MongoClient
+
         uri = get_settings().mongo_uri
         if uri:
             client = MongoClient(uri)
@@ -312,7 +334,18 @@ async def save_as_template(
             coll = db.get_collection("templates")
             coll.update_one(
                 {"id": template_id},
-                {"$set": {"id": template_id, "name": name, "description": description, "final_prompt": existing.get("final_prompt"), "category": body.get("category", "BFSI"), "language": body.get("language", "English"), "use_count": 0, "avg_rating": 0.0}},
+                {
+                    "$set": {
+                        "id": template_id,
+                        "name": name,
+                        "description": description,
+                        "final_prompt": existing.get("final_prompt"),
+                        "category": body.get("category", "BFSI"),
+                        "language": body.get("language", "English"),
+                        "use_count": 0,
+                        "avg_rating": 0.0,
+                    }
+                },
                 upsert=True,
             )
     except Exception:
@@ -334,7 +367,16 @@ async def deploy_prompt(
         raise HTTPException(status_code=501, detail="DEPLOY_WEBHOOK_URL not configured")
     try:
         import httpx
-        r = httpx.post(url, json={"session_id": session_id, "final_prompt": existing.get("final_prompt"), "quality_score": existing.get("quality_score")}, timeout=30.0)
+
+        r = httpx.post(
+            url,
+            json={
+                "session_id": session_id,
+                "final_prompt": existing.get("final_prompt"),
+                "quality_score": existing.get("quality_score"),
+            },
+            timeout=30.0,
+        )
         r.raise_for_status()
         return {"deployed": True, "session_id": session_id}
     except Exception as e:
