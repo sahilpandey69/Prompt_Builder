@@ -14,6 +14,7 @@ from services.api_client import (
 
 def _auth_headers() -> dict[str, str]:
     import os
+
     token = os.environ.get("SIMPLE_PASSWORD", "")
     return {"X-Auth-Token": token}
 
@@ -108,33 +109,53 @@ def _show_legacy_inputs() -> None:
                 # Store for possible combined analysis; also allow file-only analysis
                 st.session_state.combined_file = {
                     "content": raw,
-                    "metadata": {"filename": uploaded.name, "file_type": ext, "kind": "text"},
+                    "metadata": {
+                        "filename": uploaded.name,
+                        "file_type": ext,
+                        "kind": "text",
+                    },
                 }
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button("💾 Use in Combined Input", key="store_txt_file"):
                         st.toast("Text file stored for combined analysis.")
                 with col2:
-                    if st.button("🚀 Analyze File Only", type="primary", key="analyze_txt_file"):
+                    if st.button(
+                        "🚀 Analyze File Only", type="primary", key="analyze_txt_file"
+                    ):
                         _process_input(raw, "text")
                         st.rerun()
             else:
                 b64 = base64.b64encode(raw_bytes).decode("ascii")
                 st.success(f"Uploaded: {uploaded.name} ({len(raw_bytes)} bytes)")
                 with st.expander("Preview"):
-                    st.caption("Binary file; will be extracted on the server (PDF/DOCX/XLSX/CSV).")
+                    st.caption(
+                        "Binary file; will be extracted on the server (PDF/DOCX/XLSX/CSV)."
+                    )
                 st.session_state.combined_file = {
                     "content": b64,
-                    "metadata": {"filename": uploaded.name, "file_type": ext, "kind": "file"},
+                    "metadata": {
+                        "filename": uploaded.name,
+                        "file_type": ext,
+                        "kind": "file",
+                    },
                 }
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button("💾 Use in Combined Input", key="store_bin_file"):
                         st.toast("File stored for combined analysis.")
                 with col2:
-                    if st.button("🚀 Analyze File Only", type="primary", key="analyze_bin_file"):
+                    if st.button(
+                        "🚀 Analyze File Only", type="primary", key="analyze_bin_file"
+                    ):
                         _process_input(
-                            {"content": b64, "metadata": {"filename": uploaded.name, "file_type": ext}},
+                            {
+                                "content": b64,
+                                "metadata": {
+                                    "filename": uploaded.name,
+                                    "file_type": ext,
+                                },
+                            },
                             "file",
                         )
                         st.rerun()
@@ -154,7 +175,9 @@ def _show_legacy_inputs() -> None:
                     st.session_state.combined_paste = script.strip()
                     st.toast("Pasted script stored for combined analysis.")
         with col2:
-            if st.button("🚀 Analyze Script Only", type="primary", key="analyze_paste_only"):
+            if st.button(
+                "🚀 Analyze Script Only", type="primary", key="analyze_paste_only"
+            ):
                 if not (script or "").strip():
                     st.error("Please paste some content.")
                 else:
@@ -172,7 +195,14 @@ def _show_legacy_inputs() -> None:
                 gender = st.selectbox("Gender*", ["Female", "Male"])
                 use_case = st.selectbox(
                     "Use Case Type*",
-                    ["Loan Reminder", "Appointment Booking", "Payment Collection", "Support Call", "Survey", "Custom"],
+                    [
+                        "Loan Reminder",
+                        "Appointment Booking",
+                        "Payment Collection",
+                        "Support Call",
+                        "Survey",
+                        "Custom",
+                    ],
                 )
             st.markdown("#### Language")
             default_lang = st.selectbox(
@@ -201,7 +231,8 @@ def _show_legacy_inputs() -> None:
                     # Build combined input: file (if any) + pasted script (if any) + form data
                     combined_payload = {
                         "file": st.session_state.get("combined_file"),
-                        "paste": st.session_state.get("combined_paste", "").strip() or None,
+                        "paste": st.session_state.get("combined_paste", "").strip()
+                        or None,
                         "form": form_content,
                     }
                     _process_input(combined_payload, "combined")
@@ -286,14 +317,14 @@ def _show_guided_wizard_inputs() -> None:
 
     with st.expander("7. Objection Handling"):
         st.markdown(
-            "List out-of-flow objections (\"I'm busy\", \"Not interested\", DNC, price concerns, etc.) "
+            'List out-of-flow objections ("I\'m busy", "Not interested", DNC, price concerns, etc.) '
             "and the exact responses, in all relevant languages."
         )
         st.session_state.section_inputs["objection_handling"] = st.text_area(
             "Objection Handling section",
             value=st.session_state.section_inputs.get("objection_handling", ""),
             height=260,
-            placeholder="# Objection Handling\n1. If user says \"I'm busy\"...\n2. If user says \"Not interested\"...\n...",
+            placeholder='# Objection Handling\n1. If user says "I\'m busy"...\n2. If user says "Not interested"...\n...',
         )
 
     with st.expander("8. Guardrails"):
@@ -474,7 +505,11 @@ def _show_preview_stage() -> None:
     score = st.session_state.get("quality_score") or vr.get("quality_score", 0)
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.metric("Quality Score", f"{score}%", delta="Excellent" if score >= 90 else "Good" if score >= 80 else "Review")
+        st.metric(
+            "Quality Score",
+            f"{score}%",
+            delta="Excellent" if score >= 90 else "Good" if score >= 80 else "Review",
+        )
     with c2:
         st.metric("Tokens", vr.get("tokens", 0))
     with c3:
